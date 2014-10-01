@@ -21,6 +21,43 @@
 
 class OC_Share_Backend_Folder extends OC_Share_Backend_File implements OCP\Share_Backend_Collection {
 
+	/**
+	 * get shared parents
+	 */
+	public function getParents($itemSource) {
+		$result = array();
+		$parent = $this->getParentId($itemSource);
+		while ($parent) {
+			$shares = \OCP\Share::getItemShared('folder', $parent);
+			if ($shares) {
+				foreach ($shares as $share) {
+					$name = substr($share['path'], strrpos($share['path'], '/') + 1);
+					$share['collection']['path'] = $name;
+					$share['collection']['item_type'] = 'folder';
+					$result[] = $share;
+				}
+			}
+			$parent = $this->getParentId($parent);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * get file cache ID of parent
+	 *
+	 * @param int $child file cache ID of child
+	 * @return mixed parent ID or null
+	 */
+	private function getParentId($child) {
+		$query = \OC_DB::prepare('SELECT `parent` FROM `*PREFIX*filecache` WHERE `fileid` = ?');
+		$result = $query->execute(array($child));
+		$row = $result->fetchRow();
+		$parent = ($row) ? $row['parent'] : null;
+
+		return $parent;
+	}
+
 	public function getChildren($itemSource) {
 		$children = array();
 		$parents = array($itemSource);

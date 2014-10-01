@@ -1296,7 +1296,7 @@ class Share extends \OC\Share\Constants {
 		}
 		if (isset($item)) {
 			$collectionTypes = self::getCollectionItemTypes($itemType);
-			if ($includeCollections && $collectionTypes) {
+			if ($includeCollections && $collectionTypes && !in_array('folder', $collectionTypes)) {
 				$where .= ' AND (';
 			} else {
 				$where .= ' AND';
@@ -1320,7 +1320,7 @@ class Share extends \OC\Share\Constants {
 				}
 			}
 			$queryArgs[] = $item;
-			if ($includeCollections && $collectionTypes) {
+			if ($includeCollections && $collectionTypes && !in_array('folder', $collectionTypes)) {
 				$placeholders = join(',', array_fill(0, count($collectionTypes), '?'));
 				$where .= ' OR `item_type` IN ('.$placeholders.'))';
 				$queryArgs = array_merge($queryArgs, $collectionTypes);
@@ -1482,7 +1482,7 @@ class Share extends \OC\Share\Constants {
 					}
 				}
 				// Check if this is a collection of the requested item type
-				if ($includeCollections && $collectionTypes && in_array($row['item_type'], $collectionTypes)) {
+				if ($includeCollections && $collectionTypes && $row['item_type'] !== 'folder' && in_array($row['item_type'], $collectionTypes)) {
 					if (($collectionBackend = self::getBackend($row['item_type']))
 						&& $collectionBackend instanceof \OCP\Share_Backend_Collection) {
 						// Collections can be inside collections, check if the item is a collection
@@ -1542,6 +1542,15 @@ class Share extends \OC\Share\Constants {
 						$toRemove = $switchedItems[$toRemove];
 					}
 					unset($items[$toRemove]);
+				} elseif ($includeCollections && $collectionTypes && in_array($row['item_type'], $collectionTypes)) {
+					// FIXME: Thats a dirty hack to improve file sharing performance,
+					// see github issue #10588 for more details
+					// Need to find a solution which works for all back-ends
+					$collectionBackend = self::getBackend($row['item_type']);
+					$sharedParents = $collectionBackend->getParents($row['item_source']);
+					foreach ($sharedParents as $parent) {
+						$collectionItems[] = $parent;
+					}
 				}
 			}
 			if (!empty($collectionItems)) {
@@ -1549,6 +1558,16 @@ class Share extends \OC\Share\Constants {
 			}
 
 			return self::formatResult($items, $column, $backend, $format, $parameters);
+		} elseif ($includeCollections && $collectionTypes && in_array('folder', $collectionTypes)) {
+			// FIXME: Thats a dirty hack to improve file sharing performance,
+			// see github issue #10588 for more details
+			// Need to find a solution which works for all back-ends
+			$collectionBackend = self::getBackend('folder');
+			$sharedParents = $collectionBackend->getParents($item);
+			foreach ($sharedParents as $parent) {
+				$collectionItems[] = $parent;
+			}
+			return self::formatResult($collectionItems, $column, $backend, $format, $parameters);
 		}
 
 		return array();
