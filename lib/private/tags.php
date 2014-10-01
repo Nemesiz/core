@@ -716,6 +716,7 @@ class Tags implements \OCP\ITags {
 	* Get a tag's ID.
 	*
 	* @param string $name The tag name to look for.
+	* @param string $user If different from null, only search among this user's tags.
 	* @return string|bool The tag's id or false if it hasn't been saved yet.
 	*/
 	private function getTagId($name, $owner = null) {

@@ -35,6 +35,7 @@ class TagMapper extends Mapper {
 	* Constructor.
 	*
 	* @param IDb $db Instance of the Db abstraction layer.
+	* @param string $tableName The name of the DB table to which we're mapping Tag objects.
 	*/
 	public function __construct(IDb $db, $tableName) {
 		if ($db === null) {
@@ -60,6 +61,12 @@ class TagMapper extends Mapper {
 		return $this->findEntities($sql, array_merge($owners, array($type)));
 	}
 
+	/**
+	* Check if a given Tag object already exists in the database.
+	*
+	* @param string $tag The tag to look for in the database.
+	* @return bool
+	*/
 	public function tagExists($tag) {
 		$sql = 'SELECT `id`, `uid`, `type`, `category` FROM `' . $this->getTableName() . '` '
 			. 'WHERE `uid` = ? AND `type` = ? AND `category` = ?';
